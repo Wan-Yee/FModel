@@ -15,6 +15,7 @@ using CUE4Parse_Conversion.Options;
 using CUE4Parse.Utils;
 using FModel.Extensions;
 using FModel.Framework;
+using FModel.Services.AssetRelationships;
 using FModel.Settings;
 using FModel.Views;
 using FModel.Views.Resources.Controls;
@@ -225,6 +226,7 @@ public class ExportSessionViewModel : ViewModel
         try
         {
             results = await Session.RunAsync(exportDirectory, exportOptions, progress, _cts.Token).ConfigureAwait(false);
+            RelationshipExportCoordinator.Instance.WriteManifests(exportDirectory, exportOptions, results);
         }
         catch (OperationCanceledException)
         {
@@ -331,6 +333,7 @@ public class ExportSessionViewModel : ViewModel
     public void ClearQueue()
     {
         _session?.Clear();
+        RelationshipExportCoordinator.Instance.Reset();
         ClearExportHistory();
     }
 

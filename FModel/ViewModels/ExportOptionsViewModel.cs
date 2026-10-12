@@ -194,6 +194,37 @@ public class ExportOptionsViewModel : ViewModel
         set => SetProperty(ref field, value);
     }
 
+    public IEnumerable<EAnimationRelationshipExportMode> AnimationRelationshipExportModes { get; } = Enum.GetValues<EAnimationRelationshipExportMode>();
+    public EAnimationRelationshipExportMode SelectedAnimationRelationshipExportMode
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public bool ExportMeshProfiles
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public bool ExportRelationshipManifest
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public bool UseSharedAnimationLibrary
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    public bool IncludeWeakCandidates
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
     public ExportOptionsViewModel(bool showExportImmediatelyOption = false)
     {
         ShowExportImmediatelyOption = showExportImmediatelyOption;
@@ -221,6 +252,11 @@ public class ExportOptionsViewModel : ViewModel
         SaveEmbeddedAnimations = UserSettings.Default.SaveEmbeddedAnimations;
         SelectedAnimationExportMode = UserSettings.Default.AnimationExportMode;
         FilterAnimMontage = UserSettings.Default.FilterAnimMontage;
+        SelectedAnimationRelationshipExportMode = UserSettings.Default.AnimationRelationshipExportMode;
+        ExportMeshProfiles = UserSettings.Default.ExportMeshProfiles;
+        ExportRelationshipManifest = UserSettings.Default.ExportRelationshipManifest;
+        UseSharedAnimationLibrary = UserSettings.Default.UseSharedAnimationLibrary;
+        IncludeWeakCandidates = UserSettings.Default.IncludeWeakCandidates;
 
         OverrideOptions = false;
         FeedbackMessage = "Reset to defaults";
@@ -247,6 +283,11 @@ public class ExportOptionsViewModel : ViewModel
         UserSettings.Default.SaveEmbeddedAnimations = SaveEmbeddedAnimations;
         UserSettings.Default.AnimationExportMode = SelectedAnimationExportMode;
         UserSettings.Default.FilterAnimMontage = FilterAnimMontage;
+        UserSettings.Default.AnimationRelationshipExportMode = SelectedAnimationRelationshipExportMode;
+        UserSettings.Default.ExportMeshProfiles = ExportMeshProfiles;
+        UserSettings.Default.ExportRelationshipManifest = ExportRelationshipManifest;
+        UserSettings.Default.UseSharedAnimationLibrary = UseSharedAnimationLibrary;
+        UserSettings.Default.IncludeWeakCandidates = IncludeWeakCandidates;
         UserSettings.Save();
 
         OverrideOptions = false;
@@ -270,6 +311,11 @@ public class ExportOptionsViewModel : ViewModel
         SelectedExportFolderMode,
         SaveEmbeddedAnimations,
         SelectedAnimationExportMode,
-        FilterAnimMontage
+        FilterAnimMontage,
+        SelectedAnimationRelationshipExportMode,
+        ExportMeshProfiles,
+        ExportRelationshipManifest,
+        UseSharedAnimationLibrary,
+        IncludeWeakCandidates
     );
 }

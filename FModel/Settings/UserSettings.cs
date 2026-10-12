@@ -73,7 +73,12 @@ public sealed class UserSettings : ViewModel
             Default.ExportFolderMode,
             Default.SaveEmbeddedAnimations,
             Default.AnimationExportMode,
-            Default.FilterAnimMontage
+            Default.FilterAnimMontage,
+            Default.AnimationRelationshipExportMode,
+            Default.ExportMeshProfiles,
+            Default.ExportRelationshipManifest,
+            Default.UseSharedAnimationLibrary,
+            Default.IncludeWeakCandidates
         );
     }
 
@@ -700,5 +705,40 @@ public sealed class UserSettings : ViewModel
     {
         get => _filterAnimMontage;
         set => SetProperty(ref _filterAnimMontage, value);
+    }
+
+    private EAnimationRelationshipExportMode _animationRelationshipExportMode = EAnimationRelationshipExportMode.ReferencedAndStrongCandidates;
+    public EAnimationRelationshipExportMode AnimationRelationshipExportMode
+    {
+        get => _animationRelationshipExportMode;
+        set => SetProperty(ref _animationRelationshipExportMode, value);
+    }
+
+    private bool _exportMeshProfiles = false;
+    public bool ExportMeshProfiles
+    {
+        get => _exportMeshProfiles;
+        set => SetProperty(ref _exportMeshProfiles, value);
+    }
+
+    private bool _exportRelationshipManifest = true;
+    public bool ExportRelationshipManifest
+    {
+        get => _exportRelationshipManifest;
+        set => SetProperty(ref _exportRelationshipManifest, value);
+    }
+
+    private bool _useSharedAnimationLibrary = true;
+    public bool UseSharedAnimationLibrary
+    {
+        get => _useSharedAnimationLibrary;
+        set => SetProperty(ref _useSharedAnimationLibrary, value);
+    }
+
+    private bool _includeWeakCandidates = false;
+    public bool IncludeWeakCandidates
+    {
+        get => _includeWeakCandidates;
+        set => SetProperty(ref _includeWeakCandidates, value);
     }
 }

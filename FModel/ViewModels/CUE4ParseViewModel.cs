@@ -83,6 +83,7 @@ using FModel.Creator;
 using FModel.Extensions;
 using FModel.Framework;
 using FModel.Services;
+using FModel.Services.AssetRelationships;
 using FModel.Settings;
 using FModel.Views;
 using FModel.Views.Resources.Controls;
@@ -2029,7 +2030,18 @@ public class CUE4ParseViewModel : ViewModel
 
         try
         {
-            ExportSessionViewModel.Instance.Session.Add(export);
+            var session = ExportSessionViewModel.Instance.Session;
+            if (session.TotalQueued == 0)
+            {
+                RelationshipExportCoordinator.Instance.Reset();
+            }
+
+            session.Add(export);
+
+            if (export is USkinnedAsset skinnedAsset)
+            {
+                RelationshipExportCoordinator.Instance.QueueRelatedAnimations(skinnedAsset, Provider, session, UserSettings.GetExportOptions());
+            }
         }
         catch (Exception e)
         {
