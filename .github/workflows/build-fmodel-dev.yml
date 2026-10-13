@@ -1,0 +1,152 @@
+name: FModel Dev Artifact
+
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+  CONFIGURATION: Release
+  RUNTIME_IDENTIFIER: win-x64
+  PROJECT_PATH: ./FModel/FModel.csproj
+  SOLUTION_PATH: ./FModel/FModel.slnx
+
+jobs:
+  build-dev-artifact:
+    name: Build Windows x64 Release artifact
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Print build context
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          [xml] $project = Get-Content -LiteralPath $env:PROJECT_PATH -Raw
+          $targetFramework = ($project.Project.PropertyGroup | Where-Object { $_.TargetFramework } | Select-Object -First 1).TargetFramework
+          if ([string]::IsNullOrWhiteSpace($targetFramework)) {
+            throw "TargetFramework was not found in $env:PROJECT_PATH"
+          }
+
+          "TARGET_FRAMEWORK=$targetFramework" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          Write-Host "Git Commit SHA: $env:GITHUB_SHA"
+          Write-Host "Branch: $env:GITHUB_REF_NAME"
+          Write-Host "Build Number: $env:GITHUB_RUN_NUMBER"
+          Write-Host ".NET SDK Version: $(dotnet --version)"
+          Write-Host "Target Framework: $targetFramework"
+          Write-Host "Runtime Identifier: $env:RUNTIME_IDENTIFIER"
+          Write-Host "Configuration: $env:CONFIGURATION"
+          Write-Host "Publish Mode: framework-dependent single-file; PublishTrimmed=false"
+          Write-Host "Submodules:"
+          git submodule status --recursive
+
+      - name: Restore NuGet packages
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet restore $env:SOLUTION_PATH -r $env:RUNTIME_IDENTIFIER
+
+      - name: Publish FModel
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $publishDir = Join-Path $env:GITHUB_WORKSPACE 'artifacts/publish'
+          New-Item -ItemType Directory -Force -Path $publishDir | Out-Null
+
+          dotnet publish $env:PROJECT_PATH `
+            -c $env:CONFIGURATION `
+            --no-restore `
+            --no-self-contained `
+            -r $env:RUNTIME_IDENTIFIER `
+            -f $env:TARGET_FRAMEWORK `
+            -o $publishDir `
+            -p:PublishReadyToRun=false `
+            -p:PublishSingleFile=true `
+            -p:PublishTrimmed=false `
+            -p:DebugType=None `
+            -p:GenerateDocumentationFile=false `
+            -p:DebugSymbols=false
+
+      - name: Verify and package artifact
+        id: package
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+          $artifactName = "FModel-dev-$env:GITHUB_RUN_NUMBER-$shortSha"
+          $artifactRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts'
+          $publishDir = Join-Path $artifactRoot 'publish'
+          $zipPath = Join-Path $artifactRoot "$artifactName.zip"
+          $exePath = Join-Path $publishDir 'FModel.exe'
+
+          if (!(Test-Path -LiteralPath $exePath)) {
+            Write-Error "Expected EXE was not generated: $exePath"
+            exit 1
+          }
+
+          $exe = Get-Item -LiteralPath $exePath
+          if ($exe.Length -le 0) {
+            Write-Error "Generated EXE is empty: $exePath"
+            exit 1
+          }
+
+          $sdkVersion = dotnet --version
+          $buildInfoPath = Join-Path $publishDir 'build-info.txt'
+          $buildInfo = @(
+            "Git Commit SHA: $env:GITHUB_SHA"
+            "Branch: $env:GITHUB_REF_NAME"
+            "Build Number: $env:GITHUB_RUN_NUMBER"
+            ".NET SDK Version: $sdkVersion"
+            "Target Framework: $env:TARGET_FRAMEWORK"
+            "Runtime Identifier: $env:RUNTIME_IDENTIFIER"
+            "Configuration: $env:CONFIGURATION"
+            "Publish Mode: framework-dependent single-file"
+            "PublishTrimmed: false"
+            "SelfContained: false"
+            "EXE File: FModel.exe"
+            "EXE Size Bytes: $($exe.Length)"
+            "Artifact ZIP: $artifactName.zip"
+          )
+          $buildInfo | Set-Content -LiteralPath $buildInfoPath -Encoding UTF8
+
+          Write-Host "EXE File Size: $($exe.Length) bytes"
+          Write-Host "Publish directory contents:"
+          Get-ChildItem -LiteralPath $publishDir -Force | Sort-Object Name | Format-Table Name, Length, LastWriteTime
+
+          if (Test-Path -LiteralPath $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+          }
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zipPath -CompressionLevel Optimal -Force
+
+          if (!(Test-Path -LiteralPath $zipPath)) {
+            Write-Error "ZIP artifact was not generated: $zipPath"
+            exit 1
+          }
+
+          "artifact-name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "zip-path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload dev ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact-name }}
+          path: ${{ steps.package.outputs.zip-path }}
+          if-no-files-found: error
+          retention-days: 30
